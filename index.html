@@ -1,67 +1,301 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dice Roller</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dice Roller 1-3</title>
   <style>
+    :root {
+      --bg: #f6f7fb;
+      --card: #ffffff;
+      --text: #1f2937;
+      --sub: #6b7280;
+      --btn: #111827;
+      --btnHover: #374151;
+      --line: #e5e7eb;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 60px;
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 760px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
     }
 
     h1 {
-      font-size: 40px;
+      margin: 0 0 16px;
+      text-align: center;
+      font-size: 32px;
     }
 
-    .dice {
-      font-size: 120px;
-      margin: 30px 0;
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .countBox {
+      min-width: 140px;
+      text-align: center;
+      font-size: 18px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fafafa;
     }
 
     button {
-      font-size: 22px;
-      padding: 12px 30px;
       border: none;
-      background: black;
-      color: white;
+      background: var(--btn);
+      color: #fff;
+      padding: 10px 16px;
       border-radius: 10px;
+      font-size: 16px;
       cursor: pointer;
     }
 
     button:hover {
-      background: #333;
+      background: var(--btnHover);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .diceWrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 18px;
+      min-height: 150px;
+      margin: 18px 0;
+      flex-wrap: wrap;
+    }
+
+    .dice {
+      font-size: 96px;
+      line-height: 1;
+      user-select: none;
+      transform-origin: center;
+      will-change: transform, filter;
+    }
+
+    .rolling {
+      animation: spinDice 0.8s ease;
+    }
+
+    @keyframes spinDice {
+      0% {
+        transform: rotate(0deg) scale(1);
+        filter: blur(0);
+      }
+      30% {
+        transform: rotate(180deg) scale(1.18);
+        filter: blur(1px);
+      }
+      70% {
+        transform: rotate(300deg) scale(1.1);
+        filter: blur(0.6px);
+      }
+      100% {
+        transform: rotate(360deg) scale(1);
+        filter: blur(0);
+      }
     }
 
     .result {
-      font-size: 28px;
-      margin-top: 25px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    .help {
+      margin-top: 14px;
+      color: var(--sub);
+      font-size: 14px;
+      line-height: 1.7;
+      border-top: 1px dashed var(--line);
+      padding-top: 12px;
+    }
+
+    .help code {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
+  <div class="card">
+    <h1>🎲 Dice Roller 🎲</h1>
 
-  <h1>🎲 Dice Roller</h1>
+    <div class="controls">
+      <button id="minusBtn" type="button">- 一顆</button>
+      <div class="countBox">骰子數量：<strong id="diceCount">1</strong></div>
+      <button id="plusBtn" type="button">+ 一顆</button>
+      <button id="rollBtn" type="button">Roll</button>
+    </div>
 
-  <div class="dice" id="dice">⚀</div>
+    <div class="diceWrap" id="diceWrap"></div>
 
-  <button onclick="rollDice()">Roll</button>
+    <div class="result" id="result">目前 1 顆骰子，按 Roll 開始</div>
 
-  <div class="result" id="result">Click Roll to start!</div>
+    <div class="help">
+      快捷鍵：<code>+</code>/<code>-</code> 增減骰子，
+      <code>1</code>/<code>2</code>/<code>3</code> 直接切換，
+      <code>R</code> 或 <code>Space</code> 擲骰子
+    </div>
+  </div>
 
   <script>
-    function rollDice() {
-      const diceIcons = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+    const DICE_ICONS = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+    const MIN_DICE = 1;
+    const MAX_DICE = 3;
+    const ROLL_MS = 800;
+    const SPIN_TICK_MS = 90;
 
-      const randomNumber = Math.floor(Math.random() * 6) + 1;
+    let diceCount = 1;
+    let isRolling = false;
+    let spinTimers = [];
 
-      document.getElementById("dice").textContent = diceIcons[randomNumber - 1];
+    const diceWrap = document.getElementById("diceWrap");
+    const diceCountEl = document.getElementById("diceCount");
+    const resultEl = document.getElementById("result");
+    const rollBtn = document.getElementById("rollBtn");
+    const plusBtn = document.getElementById("plusBtn");
+    const minusBtn = document.getElementById("minusBtn");
 
-      document.getElementById("result").textContent =
-        "You rolled: " + randomNumber;
+    function random1to6() {
+      return Math.floor(Math.random() * 6) + 1;
     }
-  </script>
 
+    function clearSpinTimers() {
+      spinTimers.forEach((id) => clearInterval(id));
+      spinTimers = [];
+    }
+
+    function renderDice() {
+      diceWrap.innerHTML = "";
+      for (let i = 0; i < diceCount; i++) {
+        const d = document.createElement("div");
+        d.className = "dice";
+        d.textContent = "⚀";
+        d.setAttribute("aria-label", `第 ${i + 1} 顆骰子`);
+        diceWrap.appendChild(d);
+      }
+      diceCountEl.textContent = String(diceCount);
+    }
+
+    function setDiceCount(next) {
+      if (isRolling) return;
+      diceCount = Math.max(MIN_DICE, Math.min(MAX_DICE, next));
+      renderDice();
+      resultEl.textContent = `目前 ${diceCount} 顆骰子，按 Roll 開始`;
+    }
+
+    function rollDice() {
+      if (isRolling) return;
+
+      isRolling = true;
+      rollBtn.disabled = true;
+      plusBtn.disabled = true;
+      minusBtn.disabled = true;
+
+      const diceEls = Array.from(document.querySelectorAll(".dice"));
+
+      diceEls.forEach((el) => {
+        el.classList.add("rolling");
+        const timer = setInterval(() => {
+          const temp = random1to6();
+          el.textContent = DICE_ICONS[temp - 1];
+        }, SPIN_TICK_MS);
+        spinTimers.push(timer);
+      });
+
+      setTimeout(() => {
+        clearSpinTimers();
+
+        const nums = diceEls.map((el) => {
+          const n = random1to6();
+          el.textContent = DICE_ICONS[n - 1];
+          el.classList.remove("rolling");
+          return n;
+        });
+
+        const total = nums.reduce((acc, n) => acc + n, 0);
+
+        if (diceCount === 1) {
+          resultEl.textContent = `你擲到：${nums[0]}`;
+        } else {
+          resultEl.textContent = `點數：${nums.join(" + ")} = ${total}`;
+        }
+
+        isRolling = false;
+        rollBtn.disabled = false;
+        plusBtn.disabled = false;
+        minusBtn.disabled = false;
+      }, ROLL_MS);
+    }
+
+    plusBtn.addEventListener("click", () => setDiceCount(diceCount + 1));
+    minusBtn.addEventListener("click", () => setDiceCount(diceCount - 1));
+    rollBtn.addEventListener("click", rollDice);
+
+    document.addEventListener("keydown", (e) => {
+      const key = e.key;
+
+      // 增加骰子
+      if (key === "+" || key === "=" || e.code === "NumpadAdd") {
+        setDiceCount(diceCount + 1);
+        return;
+      }
+
+      // 減少骰子
+      if (key === "-" || key === "_" || e.code === "NumpadSubtract") {
+        setDiceCount(diceCount - 1);
+        return;
+      }
+
+      // 直接切換 1 / 2 / 3 顆
+      if (key === "1" || key === "2" || key === "3") {
+        setDiceCount(Number(key));
+        return;
+      }
+
+      // R 或空白鍵擲骰子
+      if (key.toLowerCase() === "r" || e.code === "Space") {
+        e.preventDefault();
+        rollDice();
+      }
+    });
+
+    // 初始化
+    renderDice();
+  </script>
 </body>
 </html>
