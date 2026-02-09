@@ -56,13 +56,14 @@
     }
 
     .countBox {
-      min-width: 140px;
+      min-width: 60px;
       text-align: center;
-      font-size: 18px;
+      font-size: 20px;
       padding: 10px 12px;
       border: 1px solid var(--line);
       border-radius: 10px;
       background: #fafafa;
+      font-weight: bold;
     }
 
     button {
@@ -71,7 +72,7 @@
       color: #fff;
       padding: 10px 16px;
       border-radius: 10px;
-      font-size: 16px;
+      font-size: 18px;
       cursor: pointer;
     }
 
@@ -82,6 +83,12 @@
     button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    .rollArea {
+      display: flex;
+      justify-content: center;
+      margin: 14px 0 6px;
     }
 
     .diceWrap {
@@ -130,6 +137,7 @@
       font-size: 24px;
       font-weight: 700;
       margin-top: 8px;
+      min-height: 30px;
     }
 
     .help {
@@ -155,19 +163,22 @@
     <h1>🎲 Dice Roller 🎲</h1>
 
     <div class="controls">
-      <button id="minusBtn" type="button">- 一顆</button>
-      <div class="countBox">骰子數量：<strong id="diceCount">1</strong></div>
-      <button id="plusBtn" type="button">+ 一顆</button>
+      <button id="minusBtn" type="button">-</button>
+      <div class="countBox" id="diceCount">1</div>
+      <button id="plusBtn" type="button">+</button>
+    </div>
+
+    <div class="rollArea">
       <button id="rollBtn" type="button">Roll</button>
     </div>
 
     <div class="diceWrap" id="diceWrap"></div>
 
-    <div class="result" id="result">目前 1 顆骰子，按 Roll 開始</div>
+    <div class="result" id="result"></div>
 
     <div class="help">
-      快捷鍵：<code>+</code>/<code>-</code> 增減骰子，
-      <code>1</code>/<code>2</code>/<code>3</code> 直接切換，
+      快捷鍵：<code>+</code>/<code>-</code> 增減骰子：
+      <code>1</code>/<code>2</code>/<code>3</code> 直接切換：
       <code>R</code> 或 <code>Space</code> 擲骰子
     </div>
   </div>
@@ -215,7 +226,7 @@
       if (isRolling) return;
       diceCount = Math.max(MIN_DICE, Math.min(MAX_DICE, next));
       renderDice();
-      resultEl.textContent = `目前 ${diceCount} 顆骰子，按 Roll 開始`;
+      resultEl.textContent = "";
     }
 
     function rollDice() {
@@ -249,11 +260,7 @@
 
         const total = nums.reduce((acc, n) => acc + n, 0);
 
-        if (diceCount === 1) {
-          resultEl.textContent = `你擲到：${nums[0]}`;
-        } else {
-          resultEl.textContent = `點數：${nums.join(" + ")} = ${total}`;
-        }
+        resultEl.textContent = `${total}`;
 
         isRolling = false;
         rollBtn.disabled = false;
@@ -269,32 +276,27 @@
     document.addEventListener("keydown", (e) => {
       const key = e.key;
 
-      // 增加骰子
       if (key === "+" || key === "=" || e.code === "NumpadAdd") {
         setDiceCount(diceCount + 1);
         return;
       }
 
-      // 減少骰子
       if (key === "-" || key === "_" || e.code === "NumpadSubtract") {
         setDiceCount(diceCount - 1);
         return;
       }
 
-      // 直接切換 1 / 2 / 3 顆
       if (key === "1" || key === "2" || key === "3") {
         setDiceCount(Number(key));
         return;
       }
 
-      // R 或空白鍵擲骰子
       if (key.toLowerCase() === "r" || e.code === "Space") {
         e.preventDefault();
         rollDice();
       }
     });
 
-    // 初始化
     renderDice();
   </script>
 </body>
